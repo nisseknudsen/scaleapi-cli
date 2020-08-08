@@ -46,11 +46,57 @@ struct Cli {
     */
 }
 
+struct ScaleCredentials {
+    filepath: String,
+    accounts: Vec<ScaleAccount>
+}
+
+struct ScaleAccount {
+    name: String,
+    keys: Vec<ScaleApiKey>
+}
+
+struct ScaleApiKey {
+    name: String,
+    value: String
+}
+
+impl ScaleCredentials {
+    pub fn new(fp: String) -> ScaleCredentials {
+        ScaleCredentials {
+            filepath: fp,
+            accounts: vec![]
+        }
+    }
+
+    pub fn from_ini(ini: Ini, fp: String) -> ScaleCredentials {
+        let mut credentials: ScaleCredentials = ScaleCredentials {
+            filepath: fp,
+            accounts: vec![]
+        };
+        
+        for k in ini.sections() {
+            match k {
+                Some(val) => {
+                    credentials.accounts.push(
+                        ScaleAccount{
+                            name: String::from(val),
+                            keys: vec![]
+                        }
+                    );
+                },
+                None => continue
+            }
+        }
+
+        return credentials
+    }
+}
+
 fn main() {
     println!("Hello, init!");
 
-    let scaleapi_dir: String = create_directory();
-    let credentials_file: String = format!("{scaleapi_dir}/credentials", scaleapi_dir = scaleapi_dir);
+    
     let mut credentials: Ini = load_or_create_credentials(&credentials_file);
 
     let args = Cli::from_args();
@@ -88,7 +134,7 @@ fn save_credentials(credentials: &Ini, credentials_file: &String) {
     fs::set_permissions(credentials_file, fs::Permissions::from_mode(0o600)).unwrap();
 }
 
-fn create_directory() -> String {
+fn get_directory() -> String {
     let home_dir: Cow<str> = shellexpand::tilde("~");
     let scaleapi_dir: String = format!("{home_dir}/.scaleapi", home_dir = home_dir);
     fs::create_dir_all(&scaleapi_dir).unwrap();
@@ -96,9 +142,12 @@ fn create_directory() -> String {
     return scaleapi_dir;
 }
 
-fn load_or_create_credentials(credentials_file: &String) -> Ini {
-    return match Ini::load_from_file(credentials_file) {
-        Ok(credentials) => credentials,
-        Err(_error) => Ini::new(),
+fn load_or_create_credentials() -> ScaleCredentials {
+    let credentials_file: String = format!("{scaleapi_dir}/credentials", scaleapi_dir = get_directory());
+
+
+    let credentials = match Ini::load_from_file(credentials_file) {
+        Ok(credentials) => ScaleCredentials::from_ini(credentials, credentials_file),
+        Err(_error) => ScaleCredentials::new(credentials_file),
     };
 }
