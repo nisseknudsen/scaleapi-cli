@@ -9,5 +9,4 @@ edition = "2018"
 [dependencies]
 rust-ini = "0.15.3"
 shellexpand = "2.0.0"
-structopt = "0.3.16"
 clap = "2.33.2"
